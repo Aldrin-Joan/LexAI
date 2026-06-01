@@ -1,0 +1,18 @@
+{
+  "session_id": "9c0799a3",
+  "last_updated": "2026-03-26T15:16:35.168595",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the legal implications of a prenuptial agreement in India? Can it be used to exclude property from a wife?",
+      "timestamp": "2026-03-26T15:16:21.476166",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "No relevant legal precedents found in the database.",
+      "timestamp": "2026-03-26T15:16:35.168584",
+      "metadata": {}
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "session_id": "fbda5ccd",
+  "last_updated": "2026-03-26T15:28:08.921877",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the legal implications of a prenuptial agreement in India? How does this relate to the Indian Contract Act?",
+      "timestamp": "2026-03-26T15:27:28.209212",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "No relevant legal precedents found in the database.",
+      "timestamp": "2026-03-26T15:28:08.921867",
+      "metadata": {}
+    }
+  ]
+}

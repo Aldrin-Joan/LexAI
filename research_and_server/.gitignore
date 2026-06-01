@@ -1,0 +1,22 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Data and Indices (Large Files)
+data/*.db
+data/indices/
+faiss_index/
+*.faiss
+*.pkl
+
+# OS generated files
+.DS_Store
+Thumbs.db

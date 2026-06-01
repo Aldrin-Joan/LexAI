@@ -1,0 +1,18 @@
+{
+  "session_id": "8f0c6868",
+  "last_updated": "2026-03-26T15:09:17.006021",
+  "messages": [
+    {
+      "role": "user",
+      "content": "What are the legal implications of a prenuptial agreement in India?",
+      "timestamp": "2026-03-26T15:08:50.528786",
+      "metadata": {}
+    },
+    {
+      "role": "assistant",
+      "content": "No relevant legal precedents found in the database.",
+      "timestamp": "2026-03-26T15:09:17.006012",
+      "metadata": {}
+    }
+  ]
+}
