@@ -213,6 +213,7 @@ STRICT RULES:
 2. GROUNDING: Only answer based on the provided [CASE] texts.
 3. STRUCTURE: Use a structured 'Legal Opinion' format.
 4. FOLLOW-UPS: If this is a follow-up query, maintain consistency with the history.
+5. NO MARKDOWN: DO NOT use markdown formatting. No bold (**), no italics (*), no markdown tables, no backticks (`). Use PLAIN TEXT ONLY.
 
 CONVERSATION HISTORY:
 {history_text or "No previous history."}
@@ -244,7 +245,7 @@ Structure:
 
 TEXT: {excerpt}
 
-MARKDOWN BRIEF:"""
+PLAIN TEXT BRIEF (NO MARKDOWN):"""
         return self._make_request(prompt)
 
     def get_token_usage(self) -> int:
