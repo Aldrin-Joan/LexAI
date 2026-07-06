@@ -1,107 +1,17 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Indian Legal Intelligence Assistant</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            display: flex;
-            justify-content: center;
-            padding-top: 40px;
-        }
-
-        .chat-container {
-            width: 600px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 20px;
-        }
-
-        h2 {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-
-        #chat-box {
-            height: 400px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-bottom: 10px;
-            background: #fafafa;
-        }
-
-        .message {
-            margin-bottom: 10px;
-        }
-
-        .user {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-
-        .ai {
-            color: #1e8449;
-        }
-
-        input {
-            width: 80%;
-            padding: 10px;
-        }
-
-        button {
-            padding: 10px 15px;
-            background: #2c3e50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #34495e;
-        }
-    </style>
-</head>
-<body>
-
-<div class="chat-container">
-    <h2>🏛 Indian Legal Intelligence Assistant</h2>
-    <div id="chat-box"></div>
-
-    <input type="text" id="user-input" placeholder="Ask your legal question..." />
-    <button onclick="sendMessage()">Send</button>
-</div>
-
-<script>
-    const ws = new WebSocket("ws://localhost:8001/ws/chat/1");
-
-    const chatBox = document.getElementById("chat-box");
-
-    ws.onmessage = (event) => {
-        addMessage("AI", event.data, "ai");
-    };
-
-    function sendMessage() {
-        const input = document.getElementById("user-input");
-        const message = input.value;
-
-        if (message.trim() === "") return;
-
-        addMessage("You", message, "user");
-        ws.send(message);
-        input.value = "";
-    }
-
-    function addMessage(sender, text, className) {
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.innerHTML = `<span class="${className}">${sender}:</span> ${text}`;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
-    }
-</script>
-
-</body>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LexAI — Indian Legal Intelligence Platform</title>
+    <meta name="description" content="LexAI is India's premier AI-powered legal intelligence platform connecting citizens with verified advocates and cutting-edge legal research tools." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
