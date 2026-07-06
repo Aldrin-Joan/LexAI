@@ -1,93 +1,135 @@
-# LegalTech Super-App
+# LegalTech Super-App Monorepo
 
-A modern LegalTech Super-App connecting users with legal resources and lawyers. It features an AI-powered legal chatbot, secure file processing, and a professional social network for legal professionals.
-
-## 🚀 Tech Stack
-
-- **Frontend:** Flutter (Material 3), Riverpod (State Management), GoRouter (Routing).
-- **Backend:** Python, FastAPI (Asynchronous & WebSocket support).
-- **Database:** SQLModel (PostgreSQL logic Ready).
-- **Localization:** 6 Languages supported (English, Tamil, Hindi, Malayalam, Kannada, Telugu).
-- **Communication:** REST APIs & WebSockets for real-time chat.
-
-## ✨ Core Features
-
-### 1. Multilingual Support
-
-- Dynamic language switching in the UI.
-- Supported: English, Tamil (தமிழ்), Hindi (हिन्दी), Malayalam (മലയാളം), Kannada (ಕನ್ನಡ), Telugu (తెలుగు).
-
-### 2. Dual-Dashboard Architecture
-
-- **Client Dashboard:** AI Legal Chat, Document Upload/Parsing (OCR Ready), Lawyer Discovery.
-- **Lawyer Dashboard:** Professional Feed (LinkedIn style), Client Inbox, Advanced AI legal tools.
-
-### 3. Legal AI Chat
-
-- Interactive chat interface for case details.
-- Voice query support (Microphone integration placeholder).
-- Placeholder LLM and Speech-to-Text services for future integration.
-
-### 4. Professional Social Network
-
-- Ability for lawyers to create posts and view professional updates.
-- Real-time client-lawyer messaging via WebSockets.
+A modern LegalTech Super-App connecting users with legal resources and lawyers. It features a hybrid AI-powered legal chatbot, voice processing pipelines, and a professional social network.
 
 ---
 
-## 🛠️ Setup and Installation
+## 🏛️ Monorepo Architecture
+
+```mermaid
+graph TD
+    subgraph Clients [Client Layer]
+        MobileApp[apps/mobile_app <br> Flutter Mobile]
+        WebApp[apps/web_app <br> Web Playground]
+    end
+
+    subgraph Services [Service Layer]
+        FastAPI[services/core_api <br> FastAPI Production API]
+        Streamlit[services/core_api <br> Streamlit Research UI]
+        HybridSearch[services/core_api/hybrid_search <br> Sparse + Dense + Graph]
+    end
+
+    subgraph Research [Research Layer]
+        Benchmarks[research/benchmarks]
+        Papers[research/research_paper]
+    end
+
+    MobileApp -->|HTTP / WebSockets| FastAPI
+    WebApp -->|HTTP| FastAPI
+    Streamlit -->|Internal Import / REST| HybridSearch
+    FastAPI -->|Internal Import| HybridSearch
+    
+    HybridSearch -.->|Evaluation Data| Benchmarks
+```
+
+---
+
+## 📂 Project Directory Structure
+
+The project is structured as a monorepo separating applications, services, and research artifacts:
+
+```text
+Epics_App/
+├── apps/                         # User-facing frontends
+│   ├── mobile_app/               # Flutter mobile application
+│   │   ├── android/
+│   │   ├── ios/
+│   │   ├── lib/                  # Screens, Providers, and L10n assets
+│   │   └── pubspec.yaml
+│   └── web_app/                  # Web Frontend (Vite/React playground)
+│       └── index.html
+│
+├── services/                     # Backend APIs and pipelines
+│   └── core_api/                 # Consolidated Python FastAPI backend
+│       ├── app/                  # Main production API endpoints
+│       ├── hybrid_search/        # Hybrid Retrieval engines (Sparse + Dense + Graph)
+│       ├── tests/                # Core backend test suites
+│       └── docs/                 # Voice AI & architecture docs
+│
+├── research/                     # Evaluation, reports, and papers
+│   ├── benchmarks/               # Performance evaluation and metrics
+│   ├── research_paper/           # LaTeX & PDF research source papers
+│   ├── docs/                     # Deployment notes and walk-throughs
+│   └── wireframes/               # HTML layout mockups
+│
+└── README.md                     # Monorepo overview (this file)
+```
+
+---
+
+## 🚀 Setup and Installation
 
 ### Prerequisites
+* [Flutter SDK](https://docs.flutter.dev/get-started/install)
+* [Python 3.10+](https://www.python.org/downloads/)
+* [uv](https://github.com/astral-sh/uv) (recommended for Python environment and dependency management)
+* [Git](https://git-scm.com/)
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install)
-- [Python 3.10+](https://www.python.org/downloads/)
-- [Git](https://git-scm.com/)
+---
 
-### Backend Setup (FastAPI)
+### 1. Backend Setup (`services/core_api`)
 
 1. **Navigate to the backend directory:**
-
    ```bash
-   cd backend
-   ```
-2. **Create a virtual environment:**
-
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. **Install dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. **Create a .env file:**
-   A template has been created at `backend/.env`. Update the `SECRET_KEY` and other variables as needed.
-5. **Start the FastAPI server:**
-
-   ```bash
-   python app/main.py
+   cd services/core_api
    ```
 
-   The API will be available at `http://localhost:8000`. You can view the Interactive Docs at `http://localhost:8000/docs`.
+2. **Initialize environment and install dependencies using `uv`:**
+   ```bash
+   uv venv
+   # On Windows:
+   .venv\Scripts\activate
+   # On macOS/Linux:
+   source .venv/bin/activate
 
-### Frontend Setup (Flutter)
+   uv pip install -r requirements.txt -r requirements_hybrid.txt
+   ```
 
-1. **Install Flutter dependencies:**
+3. **Configure Environment Variables:**
+   Configure a `.env` file inside `services/core_api/` based on the `.env.example` template.
 
+4. **Start the FastAPI Server:**
+   ```bash
+   uv run app/main.py
+   ```
+   The API will be available at `http://localhost:8001`. You can view the Interactive Docs at `http://localhost:8001/docs`.
+
+5. **Start the AI Research Streamlit Interface:**
+   ```bash
+   uv run streamlit run streamlit_app.py
+   ```
+
+---
+
+### 2. Mobile App Setup (`apps/mobile_app`)
+
+1. **Navigate to the mobile app directory:**
+   ```bash
+   cd apps/mobile_app
+   ```
+
+2. **Install dependencies:**
    ```bash
    flutter pub get
    ```
-2. **Generate localization files:**
 
+3. **Generate localization files:**
    ```bash
    flutter gen-l10n
    ```
-3. **Run the application:**
 
+4. **Run the application:**
    ```bash
-   flutter emulators --launch Medium_Phone_API_35
-
    flutter run
    ```
 
@@ -95,43 +137,12 @@ A modern LegalTech Super-App connecting users with legal resources and lawyers. 
 
 ## 🧪 Testing
 
-### Backend Tests
-
-The backend includes a `pytest` suite for verifying Auth, AI Chat, and Discovery APIs.
-
-1. **Run tests from the root directory:**
+To run the backend test suite:
+1. Navigate to the core API directory:
    ```bash
-   # Set PYTHONPATH to include the backend folder
-   set PYTHONPATH=%PYTHONPATH%;%cd%\backend
-   pytest tests/test_backend.py
+   cd services/core_api
    ```
-
----
-
-## 📂 Project Structure
-
-```text
-legal_ai_app/
-├── backend/                # FastAPI Application
-│   ├── app/
-│   │   ├── api/            # API Routes (Auth, Legal, Chat WS)
-│   │   ├── core/           # Security and Auth utilities
-│   │   ├── models/         # SQLModel Schemas
-│   │   ├── services/       # AI and File Processing Placeholders
-│   │   └── main.py         # Entry Point
-│   └── requirements.txt    # Python Dependencies
-├── lib/                    # Flutter Application
-│   ├── l10n/               # Multilingual Arb files
-│   ├── providers/          # Riverpod State Management
-│   ├── screens/            # UI Screens (Auth, Dashboards, AI Chat)
-│   └── main.dart           # App Entry Point
-├── tests/                  # Backend Pytest Suite
-└── README.md
-```
-
-## 🔐 Security Standards
-
-- **JWT Authentication:** Secure token-based auth flow.
-- **Bcrypt Hashing:** Industry-standard password security.
-- **Input Sanitization:** Protects against injection and common attacks.
-- **Thread Safety:** Efficient async handling in FastAPI.
+2. Run tests:
+   ```bash
+   uv run pytest tests/test_backend.py
+   ```

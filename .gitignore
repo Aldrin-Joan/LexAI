@@ -49,8 +49,10 @@ app.*.map.json
 # ============================================================
 # Python / Backend
 # ============================================================
-backend/venv/
+services/core_api/venv/
+services/core_api/.venv/
 venv/
+.venv/
 **/__pycache__/
 *.pyc
 *.pyo
@@ -64,28 +66,41 @@ venv/
 # ============================================================
 # Backend Runtime Data (temp + generated audio — NOT the index)
 # ============================================================
-backend/data/temp/
-backend/data/audio/
-backend/ffmpeg.zip
+services/core_api/backend/data/temp/
+services/core_api/backend/data/audio/
+services/core_api/data/temp/
+services/core_api/data/audio/
+services/core_api/ffmpeg.zip
+services/core_api/sessions/
 
 # Large ML model / FAISS data files (too large for git — share via Drive/DVC)
-backend/data/faiss_index.index
-backend/data/faiss*.index
-backend/data/faiss_metadata.json
-backend/data/metadata.pkl
-backend/data/*.index
-backend/data/*.pkl
+services/core_api/backend/data/faiss_index.index
+services/core_api/backend/data/faiss*.index
+services/core_api/backend/data/faiss_metadata.json
+services/core_api/backend/data/metadata.pkl
+services/core_api/backend/data/*.index
+services/core_api/backend/data/*.pkl
+services/core_api/data/faiss*.index
+services/core_api/data/*.index
+services/core_api/data/*.pkl
+services/core_api/data/faiss_metadata.json
+services/core_api/data/index.db
 
 # Raw / processed data that should not be in git
-backend/data/raw_pdfs/
-backend/data/processed/
+services/core_api/backend/data/raw_pdfs/
+services/core_api/backend/data/processed/
+services/core_api/data/raw_pdfs/
+services/core_api/data/processed/
+services/core_api/data/categories/
+services/core_api/data/full_texts/
 
 # ============================================================
 # Test artifacts
 # ============================================================
-backend/scripts/test_results*.txt
-backend/scripts/_test_*.mp3
+services/core_api/scripts/test_results*.txt
+services/core_api/scripts/_test_*.mp3
 test_*.mp3
+**/test_*.mp3
 
 # ============================================================
 # OS
