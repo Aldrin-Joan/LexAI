@@ -75,7 +75,7 @@ flowchart LR
 ## Repository structure
 
 ```text
-Epics_App/
+LexAI/
 ├── apps/
 │   ├── mobile_app/        # Flutter mobile client
 │   └── web_app/           # React/Vite web workspace
