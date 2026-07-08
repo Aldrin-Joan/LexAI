@@ -211,22 +211,22 @@ def print_header(title: str) -> None:
 
 def print_success(message: str) -> None:
     """Print success message with Rich formatting."""
-    console.print(f"[green]✓[/green] {message}")
+    console.print(f"[green][OK][/green] {message}")
 
 
 def print_error(message: str) -> None:
     """Print error message with Rich formatting."""
-    console.print(f"[red]✗[/red] {message}")
+    console.print(f"[red][ERR][/red] {message}")
 
 
 def print_info(message: str) -> None:
     """Print info message with Rich formatting."""
-    console.print(f"[blue]ℹ[/blue] {message}")
+    console.print(f"[blue][INFO][/blue] {message}")
 
 
 def print_warning(message: str) -> None:
     """Print warning message with Rich formatting."""
-    console.print(f"[yellow]⚠[/yellow] {message}")
+    console.print(f"[yellow][WARN][/yellow] {message}")
 
 
 def print_panel(title: str, content: str, style: str = "blue") -> None:

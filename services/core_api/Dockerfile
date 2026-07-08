@@ -15,27 +15,23 @@ RUN apt-get update && apt-get install -y \
 
 # Create and switch to non-root user
 RUN useradd -m -u 1000 user
+WORKDIR /app
+
+# Ensure directories exist and are owned by user
+RUN mkdir -p /app/sessions /app/data/indices && chown -R user:user /app
+
 USER user
 ENV PATH="/home/user/.local/bin:$PATH"
-
-WORKDIR /app
 
 # 1. Install dependencies (Cached Layer)
 COPY --chown=user requirements.txt .
 RUN pip install --user -r requirements.txt
 
-# 2. Copy the 1.8GB Database (Cached Layer - Rarely changes)
-# This ensures code changes don't re-upload the massive database
-COPY --chown=user data/index.db data/index.db
-
-# 3. Copy application code (Last Layer - Changes often)
+# 2. Copy application code (Last Layer - Changes often)
 COPY --chown=user . .
 
-# Ensure necessary directories exist
-RUN mkdir -p sessions data/indices
-
-# Expose Hugging Face default port
-EXPOSE 7860
+# Expose port (Cloud Run will inject PORT, default to 8080)
+EXPOSE 8080
 
 # Launch the FastAPI server
-CMD ["python", "-m", "uvicorn", "backend.api:app", "--host", "0.0.0.0", "--port", "7860"]
+CMD exec uvicorn hybrid_search.api:app --host 0.0.0.0 --port ${PORT:-8080}

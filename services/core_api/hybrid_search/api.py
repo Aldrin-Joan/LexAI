@@ -32,6 +32,39 @@ _engine = None
 _llm = None
 _sessions = None
 
+# Lifespan/Startup Downloader for GCS DB
+def download_db_if_missing():
+    import urllib.request
+    import time
+    import os
+    db_path = str(Path(__file__).parent.parent / "data" / "index.db")
+    download_url = os.getenv(
+        "DB_DOWNLOAD_URL", 
+        "https://storage.googleapis.com/epics-legal-db/index.db"
+    )
+    if os.path.exists(db_path):
+        print("Database already exists locally.")
+        return
+    print(f"Database not found. Downloading from {download_url}...")
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    start_time = time.time()
+    last_logged = start_time
+    def report_hook(block_num, block_size, total_size):
+        nonlocal last_logged
+        current_time = time.time()
+        if current_time - last_logged >= 5.0:
+            downloaded = block_num * block_size
+            percent = (downloaded / total_size) * 100 if total_size > 0 else 0
+            mb_download = downloaded / (1024 * 1024)
+            mb_total = total_size / (1024 * 1024) if total_size > 0 else 0
+            print(f"Download progress: {percent:.1f}% ({mb_download:.1f} MB / {mb_total:.1f} MB)...")
+            last_logged = current_time
+    urllib.request.urlretrieve(download_url, db_path, reporthook=report_hook)
+    print(f"Database download complete. Elapsed time: {time.time() - start_time:.1f} seconds.")
+
+# Run download immediately on module import so it executes during uvicorn startup
+download_db_if_missing()
+
 
 def get_engine():
     global _engine

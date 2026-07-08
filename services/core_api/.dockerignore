@@ -1,0 +1,15 @@
+venv
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.github
+.pytest_cache
+data/index.db
+data/categories
+data/full_texts
+sessions
+logs
+*.log
