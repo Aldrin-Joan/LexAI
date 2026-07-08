@@ -1,10 +1,35 @@
-# LegalTech Super-App Monorepo
+# LegalTech Super-App
 
-A modern LegalTech Super-App connecting users with legal resources and lawyers. It features a hybrid AI-powered legal chatbot, voice processing pipelines, and a professional social network.
+AI-powered LegalTech super-app monorepo built to connect people with legal help, legal resources, and modern digital workflows across mobile, web, and backend services.
 
----
+It combines a Flutter mobile experience, a React/Vite web workspace, and a FastAPI service layer with hybrid retrieval, WebSockets, and voice-enabled capabilities. The repository is laid out to support product development, experimentation, and future scaling in one place.
 
-## 🏛️ Monorepo Architecture
+## Why this project stands out
+
+This codebase is more than a demo app. It presents a full-stack product direction with a recruiter-friendly story: a real-world problem space, a multi-platform UI layer, a Python backend, AI-assisted legal interaction, and a research-backed retrieval pipeline.
+
+Highlights:
+
+- Multi-platform client strategy with Flutter for mobile and React/Vite for web experimentation.
+- FastAPI backend designed for production-style API delivery, real-time communication, and service orchestration.
+- Hybrid legal search layer that combines sparse, dense, and graph-based retrieval ideas.
+- Voice-oriented workflows that support transcription and conversational legal assistance.
+- Research and documentation folders that show product thinking, evaluation, and technical depth.
+
+## Core product capabilities
+
+The current project direction supports several practical legal-tech workflows:
+
+- AI legal chat for guided legal support and question answering.
+- Lawyer discovery and client-to-lawyer communication flows.
+- Document upload and review-oriented interactions.
+- Voice capture and transcription pipelines for hands-free input.
+- User and lawyer dashboards with localized mobile UX.
+- Authentication, profile management, notifications, help, and account-related app flows.
+
+## Architecture
+
+The repository is organized as a monorepo so each layer can evolve independently while still fitting into one product vision.
 
 ```mermaid
 graph TD
@@ -28,121 +53,111 @@ graph TD
     WebApp -->|HTTP| FastAPI
     Streamlit -->|Internal Import / REST| HybridSearch
     FastAPI -->|Internal Import| HybridSearch
-    
+
     HybridSearch -.->|Evaluation Data| Benchmarks
 ```
 
----
+### Additional flow view
 
-## 📂 Project Directory Structure
+```mermaid
+flowchart LR
+    User[User] --> Mobile[Flutter app]
+    User --> Web[Web app]
+    Mobile --> API[FastAPI backend]
+    Web --> API
+    API --> AI[Legal AI services]
+    API --> Search[Hybrid retrieval]
+    API --> Voice[Transcription / voice pipeline]
+    AI --> Docs[Legal guidance and support]
+    Search --> Docs
+```
 
-The project is structured as a monorepo separating applications, services, and research artifacts:
+## Repository structure
 
 ```text
 Epics_App/
-├── apps/                         # User-facing frontends
-│   ├── mobile_app/               # Flutter mobile application
-│   │   ├── android/
-│   │   ├── ios/
-│   │   ├── lib/                  # Screens, Providers, and L10n assets
-│   │   └── pubspec.yaml
-│   └── web_app/                  # Web Frontend (Vite/React playground)
-│       └── index.html
-│
-├── services/                     # Backend APIs and pipelines
-│   └── core_api/                 # Consolidated Python FastAPI backend
-│       ├── app/                  # Main production API endpoints
-│       ├── hybrid_search/        # Hybrid Retrieval engines (Sparse + Dense + Graph)
-│       ├── tests/                # Core backend test suites
-│       └── docs/                 # Voice AI & architecture docs
-│
-├── research/                     # Evaluation, reports, and papers
-│   ├── benchmarks/               # Performance evaluation and metrics
-│   ├── research_paper/           # LaTeX & PDF research source papers
-│   ├── docs/                     # Deployment notes and walk-throughs
-│   └── wireframes/               # HTML layout mockups
-│
-└── README.md                     # Monorepo overview (this file)
+├── apps/
+│   ├── mobile_app/        # Flutter mobile client
+│   └── web_app/           # React/Vite web workspace
+├── services/
+│   └── core_api/          # FastAPI backend, hybrid search, and voice services
+├── research/
+│   ├── benchmarks/        # Experimental results and evaluation artifacts
+│   ├── docs/              # Architecture and deployment documentation
+│   ├── research_paper/    # Research-paper style documentation
+│   └── wireframes/        # UI/UX drafts and layout exploration
+└── README.md
 ```
 
----
+## Tech stack
 
-## 🚀 Setup and Installation
+- Flutter for the mobile client.
+- React, Vite, and Axios for the web workspace.
+- Python, FastAPI, and Streamlit for backend and research interfaces.
+- Riverpod, GoRouter, and localization support in the Flutter app.
+- WebSockets, voice recording, and audio playback packages for real-time interaction.
+- Hybrid search components for retrieval-driven legal assistance.
 
-### Prerequisites
-* [Flutter SDK](https://docs.flutter.dev/get-started/install)
-* [Python 3.10+](https://www.python.org/downloads/)
-* [uv](https://github.com/astral-sh/uv) (recommended for Python environment and dependency management)
-* [Git](https://git-scm.com/)
+## Getting started
 
----
+### Backend
 
-### 1. Backend Setup (`services/core_api`)
+The backend lives in `services/core_api` and is managed with `uv`.
 
-1. **Navigate to the backend directory:**
-   ```bash
-   cd services/core_api
-   ```
+```bash
+cd services/core_api
+uv venv
+.venv\Scripts\activate
+uv pip install -r requirements.txt -r requirements_hybrid.txt
+uv run app/main.py
+```
 
-2. **Initialize environment and install dependencies using `uv`:**
-   ```bash
-   uv venv
-   # On Windows:
-   .venv\Scripts\activate
-   # On macOS/Linux:
-   source .venv/bin/activate
+The API is available at `http://localhost:8001`, with interactive docs at `http://localhost:8001/docs`.
 
-   uv pip install -r requirements.txt -r requirements_hybrid.txt
-   ```
+To launch the research UI:
 
-3. **Configure Environment Variables:**
-   Configure a `.env` file inside `services/core_api/` based on the `.env.example` template.
+```bash
+uv run streamlit run streamlit_app.py
+```
 
-4. **Start the FastAPI Server:**
-   ```bash
-   uv run app/main.py
-   ```
-   The API will be available at `http://localhost:8001`. You can view the Interactive Docs at `http://localhost:8001/docs`.
+### Mobile app
 
-5. **Start the AI Research Streamlit Interface:**
-   ```bash
-   uv run streamlit run streamlit_app.py
-   ```
+The Flutter client lives in `apps/mobile_app`.
 
----
+```bash
+cd apps/mobile_app
+flutter pub get
+flutter gen-l10n
+flutter run
+```
 
-### 2. Mobile App Setup (`apps/mobile_app`)
+### Web workspace
 
-1. **Navigate to the mobile app directory:**
-   ```bash
-   cd apps/mobile_app
-   ```
+The web app lives in `apps/web_app`.
 
-2. **Install dependencies:**
-   ```bash
-   flutter pub get
-   ```
+```bash
+cd apps/web_app
+npm install
+npm run dev
+```
 
-3. **Generate localization files:**
-   ```bash
-   flutter gen-l10n
-   ```
+## Testing
 
-4. **Run the application:**
-   ```bash
-   flutter run
-   ```
+Run backend tests from the core API service:
 
----
+```bash
+cd services/core_api
+uv run pytest tests/test_backend.py
+```
 
-## 🧪 Testing
+## Notes for reviewers
 
-To run the backend test suite:
-1. Navigate to the core API directory:
-   ```bash
-   cd services/core_api
-   ```
-2. Run tests:
-   ```bash
-   uv run pytest tests/test_backend.py
-   ```
+This repository is best read as a product-and-engineering portfolio piece. It shows:
+
+- a clear problem domain,
+- a layered full-stack architecture,
+- UI clients for different platforms,
+- backend services with AI and retrieval components,
+- and supporting research artifacts that document the reasoning behind the system.
+
+That makes it suitable for recruiters who want to see both implementation depth and product thinking in one repo.
