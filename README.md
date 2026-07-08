@@ -1,6 +1,6 @@
-# LegalTech Super-App
+# LexAI
 
-AI-powered LegalTech super-app monorepo built to connect people with legal help, legal resources, and modern digital workflows across mobile, web, and backend services.
+AI-powered legal technology platform built to connect people with legal help, legal resources, and modern digital workflows across mobile, web, and backend services.
 
 It combines a Flutter mobile experience, a React/Vite web workspace, and a FastAPI service layer with hybrid retrieval, WebSockets, and voice-enabled capabilities. The repository is laid out to support product development, experimentation, and future scaling in one place.
 
