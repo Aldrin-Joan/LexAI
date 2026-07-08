@@ -59,3 +59,35 @@ Run the FastAPI server using `uv`:
 uv run app/main.py
 ```
 View interactive API schemas by opening `http://localhost:8001/docs`.
+
+---
+
+## ☁️ Serverless Cloud Run Deployment
+
+The production backend has been optimized for Google Cloud Run serverless hosting:
+* **Image Size Optimization:** The 1.8GB database file (`data/index.db`) has been removed from the Docker image to achieve a lightweight build footprint (~300MB).
+* **Startup Stream Downloader:** The application automatically streams the database from GCS (`gs://epics-legal-db/index.db`) on startup.
+
+### 1. Build Container Image
+Use Google Cloud Build to compile and push the container to Artifact Registry (excluding local environments via `.dockerignore`):
+```bash
+gcloud builds submit --tag gcr.io/legal-chatbot-epics/core-api --project=legal-chatbot-epics --ignore-file=.dockerignore
+```
+
+### 2. Deploy to Cloud Run
+Deploy the service using high-speed startup CPU boost and individual environment variable configuration parameters:
+```bash
+gcloud run deploy core-api `
+  --image gcr.io/legal-chatbot-epics/core-api `
+  --platform managed `
+  --region asia-south1 `
+  --memory 2Gi `
+  --cpu 2 `
+  --timeout 300 `
+  --update-env-vars DB_DOWNLOAD_URL="https://storage.googleapis.com/epics-legal-db/index.db" `
+  --update-env-vars GROQ_API_KEY="YOUR_GROQ_API_KEY" `
+  --update-env-vars GROQ_MODEL="llama-3.3-70b-versatile" `
+  --allow-unauthenticated `
+  --project=legal-chatbot-epics
+```
+
