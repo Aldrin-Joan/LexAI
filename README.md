@@ -4,6 +4,11 @@ AI-powered legal technology platform built to connect people with legal help, le
 
 It combines a Flutter mobile experience, a React/Vite web workspace, and a FastAPI service layer with hybrid retrieval, WebSockets, and voice-enabled capabilities. The repository is laid out to support product development, experimentation, and future scaling in one place.
 
+## 🚀 Live Deployments
+
+* **Web Application Workspace**: [https://lexai-3fd1a.web.app](https://lexai-3fd1a.web.app) (Deployed via Firebase Hosting, featuring Google Sign-In and real-time legal consultation queries)
+* **Production RAG API Backend**: [https://core-api-584212158273.asia-south1.run.app](https://core-api-584212158273.asia-south1.run.app) (FastAPI containerized service running on Google Cloud Run with 4GB RAM to load dense FAISS indices & sentence-transformers under full CORS authorization)
+
 ## Why this project stands out
 
 This codebase is more than a demo app. It presents a full-stack product direction with a recruiter-friendly story: a real-world problem space, a multi-platform UI layer, a Python backend, AI-assisted legal interaction, and a research-backed retrieval pipeline.
