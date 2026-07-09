@@ -8,13 +8,14 @@ import { ToastProvider } from './components/Toast';
 import ProtectedRoute from './components/ProtectedRoute';
 import ParticleCanvas from './components/ParticleCanvas';
 
-import AuthPage          from './pages/AuthPage';
-import LawyerAuthPage    from './pages/LawyerAuthPage';
-import VerificationHold  from './pages/VerificationHold';
-import ClientWorkspace   from './pages/ClientWorkspace';
-import LawyerFeed        from './pages/LawyerFeed';
-import InboxPage         from './pages/InboxPage';
-import CasesPage         from './pages/CasesPage';
+import AuthPage from './pages/AuthPage';
+import LawyerAuthPage from './pages/LawyerAuthPage';
+import VerificationHold from './pages/VerificationHold';
+import ClientWorkspace from './pages/ClientWorkspace';
+import LawyerFeed from './pages/LawyerFeed';
+import InboxPage from './pages/InboxPage';
+import CasesPage from './pages/CasesPage';
+import LexAIChatPage from './pages/LexAIChatPage';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -26,7 +27,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 
           <Routes>
             {/* Public routes */}
-            <Route path="/auth"        element={<AuthPage />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/lawyer-auth" element={<LawyerAuthPage />} />
 
             {/* Verification hold — authenticated lawyers only */}
@@ -65,6 +66,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               element={
                 <ProtectedRoute>
                   <InboxPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lexai"
+              element={
+                <ProtectedRoute>
+                  <LexAIChatPage />
                 </ProtectedRoute>
               }
             />

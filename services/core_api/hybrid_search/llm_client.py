@@ -1,7 +1,6 @@
-"""
-Google Gemini (v2) client wrapper for Legal Case Knowledge Graph System.
+"""Groq API client wrapper for Legal Case Knowledge Graph System.
 
-This module provides a wrapper around the new Google GenAI SDK for:
+This module provides a wrapper around the Groq Cloud API for:
 - Case categorization
 - Entity extraction
 - Relationship detection
@@ -12,18 +11,19 @@ This module provides a wrapper around the new Google GenAI SDK for:
 import json
 import time
 from typing import Dict, List, Optional, Any
-from google import genai
+import requests
 from config import Config
 from utils import print_error, print_warning
 
 
 class LLMClient:
-    """Wrapper for Google Gemini API interactions using the new GenAI SDK."""
+    """Wrapper for Groq API interactions."""
 
     def __init__(self):
-        """Initialize the Google Gemini client."""
-        self.client = genai.Client(api_key=Config.GOOGLE_API_KEY)
-        self.model_name = Config.GEMINI_MODEL
+        """Initialize the Groq client."""
+        self.api_key = Config.GROQ_API_KEY
+        self.model_name = Config.GROQ_MODEL
+        self.api_url = "https://api.groq.com/openai/v1/chat/completions"
         self.total_tokens = 0
         self.cache: Dict[str, Any] = {}
 
@@ -34,41 +34,58 @@ class LLMClient:
         max_retries: int = 3,
         is_json: bool = False,
     ) -> Optional[str]:
-        """
-        Make a request to Google Gemini with retry logic.
-        """
-        config = {
+        """Make a request to Groq API with retry logic."""
+        if not self.api_key:
+            print_error("GROQ_API_KEY is not set in environment.")
+            return None
+
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+
+        payload: Dict[str, Any] = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
             "temperature": temperature,
         }
 
         if is_json:
-            config["response_mime_type"] = "application/json"
+            payload["response_format"] = {"type": "json_object"}
 
         for attempt in range(max_retries):
             try:
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=prompt,
-                    config=config
+                response = requests.post(
+                    self.api_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=30
                 )
+                response.raise_for_status()
+                res_data = response.json()
 
-                # Track token usage if available in metadata
-                if hasattr(response, 'usage_metadata'):
-                    self.total_tokens += \
-                        response.usage_metadata.total_token_count
+                # Track token usage if available
+                usage = res_data.get("usage")
+                if usage:
+                    self.total_tokens += usage.get("total_tokens", 0)
 
-                return response.text
+                choices = res_data.get("choices", [])
+                if choices:
+                    return choices[0]["message"]["content"]
+
+                return None
 
             except Exception as e:
                 print_warning(
-                    f"Gemini API request failed (attempt {attempt + 1}/"
+                    f"Groq API request failed (attempt {attempt + 1}/"
                     f"{max_retries}): {str(e)}"
                 )
                 if attempt < max_retries - 1:
                     time.sleep(2 ** attempt)
                 else:
-                    print_error("Gemini API request failed after "
-                                f"{max_retries} attempts")
+                    print_error(
+                        f"Groq API failed after {max_retries} attempts"
+                    )
                     return None
 
         return None
@@ -78,9 +95,7 @@ class LLMClient:
         case_text: str,
         case_title: str
     ) -> Optional[Dict[str, Any]]:
-        """
-        Categorize a legal case into main and sub-categories.
-        """
+        """Categorize a legal case into main and sub-categories."""
         cache_key = f"categorize_{hash(case_title)}"
         if cache_key in self.cache:
             return self.cache[cache_key]
@@ -89,7 +104,7 @@ class LLMClient:
             case_text = case_text[:Config.MAX_TEXT_LENGTH]
 
         prompt = f"""Analyze the following Indian Supreme Court case.
-        
+
 Case Title: {case_title}
 Text Excerpt: {case_text[:2000]}
 
@@ -122,7 +137,7 @@ Respond with a JSON object:
     ) -> Optional[List[Dict[str, Any]]]:
         """Extract legal entities from case text."""
         prompt = f"""Extract entities from this legal text in JSON.
-        
+
 Text: {case_text[:3000]}
 
 Format: {{"entities": [{{"type": "JUDGE", "text": "Name", "confidence": 0.9}}]}}
@@ -151,13 +166,14 @@ Format: {{"entities": [{{"type": "JUDGE", "text": "Name", "confidence": 0.9}}]}}
         prompt = f"""Analyze query: "{query}"
 Extract JSON: {{
     "main_category": "domain", "sub_category": "subdomain",
-    "keywords": ["term1", "term2"], "year_range": {{"start": 2000, "end": 2025}}
+    "keywords": ["term1", "term2"],
+    "year_range": {{"start": 2000, "end": 2025}}
 }}"""
         response = self._make_request(prompt, is_json=True)
         if response:
             try:
                 return json.loads(response)
-            except:
+            except Exception:
                 return None
         return None
 
@@ -188,7 +204,7 @@ Output queries separated by newlines.
         context_docs: List[Dict[str, Any]],
         history: Optional[List[Dict[str, Any]]] = None
     ) -> Optional[str]:
-        """Generate RAG summary using Gemini with citations and history."""
+        """Generate RAG summary using Groq with citations and history."""
         # 1. Format Context
         context_text = ""
         for i, doc in enumerate(context_docs[:5], 1):
@@ -206,14 +222,15 @@ Output queries separated by newlines.
                 history_text += f"{role}: {content}\n"
 
         prompt = f"""You are a AI Senior Advocate.
-Based on the provided precedents and conversation history, answer the legal question.
+Based on the provided precedents and conversation history, answer the query.
 
 STRICT RULES:
 1. CITATIONS: Use the FULL Case Names and Citations for every legal point.
 2. GROUNDING: Only answer based on the provided [CASE] texts.
 3. STRUCTURE: Use a structured 'Legal Opinion' format.
-4. FOLLOW-UPS: If this is a follow-up query, maintain consistency with the history.
-5. NO MARKDOWN: DO NOT use markdown formatting. No bold (**), no italics (*), no markdown tables, no backticks (`). Use PLAIN TEXT ONLY.
+4. FOLLOW-UPS: If this is a follow-up query, maintain consistency with history.
+5. NO MARKDOWN: DO NOT use markdown formatting. No bold (**), no italics (*),
+   no markdown tables, no backticks (`). Use PLAIN TEXT ONLY.
 
 CONVERSATION HISTORY:
 {history_text or "No previous history."}
@@ -228,13 +245,20 @@ LEGAL ADVICE:"""
 
     def generate_case_brief(
         self,
-        case_title: str,
+        case_title: Any,
         full_text: str,
         metadata: Optional[Dict[str, Any]] = None
     ) -> Optional[str]:
         """Generate structured legal brief with IRAC."""
+        # Defensive check in case dict is passed instead of string title
+        title_str = ""
+        if isinstance(case_title, dict):
+            title_str = case_title.get('title', 'N/A')
+        else:
+            title_str = str(case_title)
+
         excerpt = full_text[:4500]
-        prompt = f"""Create a detailed legal brief (IRAC format) for: {case_title}.
+        prompt = f"""Create a detailed legal brief (IRAC format) for: {title_str}.
 Include the full citation if available in the text.
 
 Structure:

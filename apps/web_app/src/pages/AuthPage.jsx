@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { loginUser, registerCustomer, getMe } from '../api/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../api/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import {
@@ -89,54 +91,34 @@ export default function AuthPage() {
   const handleSignIn = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!siForm.username) errs.username = 'Username is required';
+    if (!siForm.username) errs.username = 'Email address is required';
     if (!siForm.password) errs.password = 'Password is required';
     setSiErrors(errs);
     if (Object.keys(errs).length) return;
 
     setSiLoading(true);
     try {
-      const { access_token } = await loginUser(siForm.username, siForm.password);
-      const userData = await getMe();
-      login(access_token, userData);
-      toast('Welcome back, ' + userData.full_name + '!', 'success');
+      const userData = await login(siForm.username, siForm.password);
+      toast('Welcome back, ' + (userData.full_name || 'User') + '!', 'success');
       navigate(userData.is_lawyer ? '/feed' : '/workspace');
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Incorrect credentials. Please try again.';
-      toast(msg, 'error');
+      console.error(err);
+      toast('Incorrect email or password. Please try again.', 'error');
     } finally {
       setSiLoading(false);
     }
   };
 
-  /* ---- Demo Bypasses ---- */
-  const handleClientDemo = () => {
-    const mockUser = {
-      id: 999,
-      username: 'demo_client',
-      email: 'client@demo.lexai.com',
-      full_name: 'Demo Client (Ayush)',
-      is_lawyer: false,
-      is_active: true,
-    };
-    login('demo_client_token', mockUser);
-    toast('Logged in as Demo Client (Bypassed)', 'success');
-    navigate('/workspace');
-  };
-
-  const handleLawyerDemo = () => {
-    const mockUser = {
-      id: 888,
-      username: 'demo_advocate',
-      email: 'advocate@demo.lexai.com',
-      full_name: 'Adv. Kartik Sharma',
-      is_lawyer: true,
-      is_active: true,
-      bar_registration_number: 'BCI/2026/DEMO99',
-    };
-    login('demo_lawyer_token', mockUser);
-    toast('Logged in as Demo Advocate (Bypassed)', 'success');
-    navigate('/feed');
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      toast('Welcome back!', 'success');
+      navigate('/workspace');
+    } catch (err) {
+      console.error(err);
+      toast('Google login failed: ' + err.message, 'error');
+    }
   };
 
   /* ---- Sign Up ---- */
@@ -155,16 +137,21 @@ export default function AuthPage() {
 
     setSuLoading(true);
     try {
-      await registerCustomer(suForm);
+      const cred = await createUserWithEmailAndPassword(auth, suForm.email, suForm.password);
+      await setDoc(doc(db, 'users', cred.user.uid), {
+        full_name: suForm.fullName,
+        username: suForm.username,
+        email: suForm.email,
+        is_lawyer: false,
+        is_active: true,
+        created_at: new Date().toISOString(),
+      });
       toast('Account created! Please sign in.', 'success');
       setTab('signin');
-      setSiForm({ username: suForm.username, password: '' });
+      setSiForm({ username: suForm.email, password: '' });
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      const msg = Array.isArray(detail)
-        ? detail[0]?.msg
-        : detail || 'Registration failed. Please try again.';
-      toast(msg, 'error');
+      console.error(err);
+      toast(err.message || 'Registration failed. Please try again.', 'error');
     } finally {
       setSuLoading(false);
     }
@@ -279,28 +266,25 @@ export default function AuthPage() {
                   : <><SparkleIcon size={16} color="#0B0F19" /> Sign In</>}
               </button>
 
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.25rem' }}>
-                <button
-                  type="button"
-                  id="btn-client-demo"
-                  className="btn btn-ghost btn-sm btn-full btn-ripple"
-                  onClick={handleClientDemo}
-                  style={{ border: '1px dashed var(--glass-border-hover)' }}
-                >
-                  👤 Client Demo
-                </button>
-                <button
-                  type="button"
-                  id="btn-lawyer-demo"
-                  className="btn btn-ghost btn-sm btn-full btn-ripple"
-                  onClick={handleLawyerDemo}
-                  style={{ border: '1px dashed var(--glass-border-hover)' }}
-                >
-                  ⚖️ Advocate Demo
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', margin: '0.75rem 0', justifyContent: 'center', gap: '0.5rem' }}>
+                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>OR</span>
+                <div style={{ flex: 1, height: '1px', background: 'var(--glass-border)' }} />
               </div>
 
-              <hr className="divider" />
+              <button
+                type="button"
+                className="btn btn-ghost btn-full btn-ripple"
+                onClick={handleGoogleSignIn}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', border: '1px solid var(--glass-border)' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24">
+                  <path fill="#EA4335" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114A5.5 5.5 0 0 1 8.5 13a5.5 5.5 0 0 1 5.491-5.518c1.483 0 2.825.54 3.868 1.438l3.167-3.167C19.066 3.879 16.711 3 13.99 3A9.99 9.99 0 0 0 4 13a9.99 9.99 0 0 0 9.99 10c5.38 0 9.778-3.9 9.778-10a9.04 9.04 0 0 0-.17-1.715H12.24z"/>
+                </svg>
+                Sign In with Google
+              </button>
+
+              <hr className="divider" style={{ marginTop: '1rem' }} />
               <p className={styles.switchText}>
                 New to LexAI?{' '}
                 <button type="button" className={styles.switchLink} onClick={() => setTab('signup')}>

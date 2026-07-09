@@ -68,3 +68,45 @@ export async function getLawyers(filters = {}) {
   const res = await axios.get('/legal/lawyers', { params: filters });
   return res.data;
 }
+
+const CORE_API_BASE = import.meta.env.VITE_CORE_API_URL || (import.meta.env.PROD ? 'https://core-api-584212158273.asia-south1.run.app' : '/core-api');
+
+/** POST /chat — Conversational Legal Advice */
+export async function askLexAI(query, sessionId = null, limit = 5) {
+  const res = await fetch(`${CORE_API_BASE}/chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query,
+      session_id: sessionId,
+      limit,
+    }),
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** GET /sessions — Get active chat sessions */
+export async function getLexAISessions() {
+  const res = await fetch(`${CORE_API_BASE}/sessions`);
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** POST /brief/{case_id} — Generate case brief */
+export async function getCaseBrief(caseId) {
+  const res = await fetch(`${CORE_API_BASE}/brief/${caseId}`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`);
+  }
+  return res.json();
+}
+

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerLawyer, uploadVerificationDoc, loginUser, getMe } from '../api/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../api/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import styles from './LawyerAuthPage.module.css';
@@ -30,7 +32,7 @@ export default function LawyerAuthPage() {
   const [files, setFiles]   = useState([]);
   const [dragOver, setDragOver] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [createdToken, setCreatedToken] = useState(null);
+  const [createdUid, setCreatedUid] = useState(null);
 
   const { login } = useAuth();
   const toast = useToast();
@@ -68,13 +70,25 @@ export default function LawyerAuthPage() {
       // Register lawyer on step 1 completion
       setLoading(true);
       try {
-        await registerLawyer(form);
-        const { access_token } = await loginUser(form.username, form.password);
-        setCreatedToken(access_token);
+        const cred = await createUserWithEmailAndPassword(auth, form.email, form.password);
+        await setDoc(doc(db, 'users', cred.user.uid), {
+          full_name: form.fullName,
+          username: form.username,
+          email: form.email,
+          is_lawyer: true,
+          bar_registration_number: form.barNumber,
+          practice_domains: form.practiceDomains,
+          years_of_experience: Number(form.yearsExp),
+          bio: form.bio,
+          is_active: false,
+          verification_status: 'pending',
+          created_at: new Date().toISOString(),
+        });
+        setCreatedUid(cred.user.uid);
         setStep(2);
       } catch (err) {
-        const msg = err.response?.data?.detail || 'Registration failed.';
-        toast(typeof msg === 'string' ? msg : msg[0]?.msg, 'error');
+        console.error(err);
+        toast(err.message || 'Registration failed.', 'error');
       } finally {
         setLoading(false);
       }
@@ -87,15 +101,16 @@ export default function LawyerAuthPage() {
     if (!files.length) { toast('Please upload at least one document', 'error'); return; }
     setLoading(true);
     try {
-      for (const file of files) {
-        await uploadVerificationDoc(file, 'bar_council_card', createdToken);
-      }
-      const userData = await getMe();
-      login(createdToken, userData);
+      const userRef = doc(db, 'users', createdUid);
+      await setDoc(userRef, {
+        uploaded_documents: files.map((f) => f.name),
+        verification_status: 'pending',
+      }, { merge: true });
       toast('Registration complete! Your account is under review.', 'success');
       navigate('/verification-hold');
-    } catch {
-      toast('Document upload failed. Please try again.', 'error');
+    } catch (err) {
+      console.error(err);
+      toast('Document registration failed. Please try again.', 'error');
     } finally {
       setLoading(false);
     }

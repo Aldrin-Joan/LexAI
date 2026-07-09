@@ -27,13 +27,15 @@ export default function Navbar() {
   const handleLogout = () => { logout(); navigate('/auth'); };
 
   const customerLinks = [
-    { to: '/workspace', label: 'AI Workspace', icon: <SparkleIcon size={16} /> },
+    { to: '/workspace', label: 'AI Workspace', icon: <BriefcaseIcon size={16} /> },
+    { to: '/lexai',     label: 'LexAI Chat',   icon: <SparkleIcon size={16} /> },
     { to: '/cases',     label: 'My Cases',     icon: <FolderIcon size={16} /> },
     { to: '/inbox',     label: 'Inbox',        icon: <MessageIcon size={16} /> },
   ];
 
   const lawyerLinks = [
     { to: '/feed',   label: 'Feed',           icon: <GridIcon size={16} /> },
+    { to: '/lexai',  label: 'LexAI Chat',     icon: <SparkleIcon size={16} /> },
     { to: '/cases',  label: 'Case Inquiries', icon: <BriefcaseIcon size={16} /> },
     { to: '/inbox',  label: 'Inbox',          icon: <MessageIcon size={16} /> },
   ];

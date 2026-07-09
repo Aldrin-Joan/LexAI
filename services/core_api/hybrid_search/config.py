@@ -1,3 +1,4 @@
+
 """
 Configuration management for Legal Case Knowledge Graph System.
 
@@ -23,6 +24,10 @@ class Config:
     # Google Gemini Configuration
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+
+    # Groq Cloud Configuration
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
     # Storage Configuration
     BASE_DATA_DIR = Path(__file__).parent.parent.absolute() / "data"

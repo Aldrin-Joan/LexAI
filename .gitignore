@@ -60,6 +60,16 @@ venv/
 .pytest_cache/
 .cache/
 
+# Environment files
+.env
+.env.*
+.env.local
+
+# Firebase configs / logs
+.firebase/
+firebase-debug.log
+ui-debug.log
+
 # HuggingFace model cache
 .cache/huggingface/
 
