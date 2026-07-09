@@ -1,16 +1,45 @@
-# React + Vite
+# LexAI Web Client ⚖️
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The React + Vite production web workspace for the LexAI platform. It is fully integrated with Firebase services for hosting, authentication, and database storage, and queries the containerized Cloud Run search backend directly.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 🚀 Live Demo
+Access the live web deployment at: **[https://lexai-3fd1a.web.app](https://lexai-3fd1a.web.app)**
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 🏛️ System Features
 
-## Expanding the Oxlint configuration
+* **Real-time Legal Consultation**: A conversational interface leveraging Gemini's retrieval-augmented synthesis pipeline for answering case queries.
+* **Firebase Authentication**: Support for secure Email/Password registration/login and native **Google Sign-In**.
+* **Auto-Provisioning Client Profiles**: Automatically spins up database records in Firestore (`/users/{uid}`) upon first sign-in (for both Google and email users) to track active sessions.
+* **Environment-Aware Core API**: Automatically directs API traffic to your local serverless proxy (`/core-api`) in development mode, and connects directly to the live serverless Cloud Run domain in production.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+---
+
+## 📂 Project Structure
+
+* `/src/api/firebase.js`: Firebase client initialization (Auth and Firestore DB).
+* `/src/api/legal.js`: Interface to backend RAG API, resolving base URLs dynamically based on environment.
+* `/src/context/AuthContext.jsx`: Authentication context provider handling Firebase triggers, login status, and auto-profiling.
+* `/src/pages/AuthPage.jsx`: Beautiful glassmorphic design login and registration layout, including Google Sign-in buttons.
+* `/src/pages/LexAIChatPage.jsx`: Clean, responsive RAG chat console with source precedents and citations.
+
+---
+
+## ⚙️ Development & Deployment
+
+### 1. Run Locally
+Install dependencies and run the Vite server locally:
+```bash
+npm install
+npm run dev
+```
+
+### 2. Build and Deploy to Firebase
+Build the static distribution files and upload them to Firebase Hosting:
+```bash
+npm run build
+firebase deploy --only hosting
+```
