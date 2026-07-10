@@ -38,5 +38,13 @@ dependencies = [
     "arize-phoenix-otel>=0.1.0",
     "opentelemetry-api>=1.25.0",
     "opentelemetry-sdk>=1.25.0",
-    "opentelemetry-instrumentation-fastapi>=0.46b0"
+    "opentelemetry-instrumentation-fastapi>=0.46b0",
+    "cryptography>=47.0.0",
+    "firebase-admin>=7.4.0",
 ]
+
+[tool.pytest.ini_options]
+# Add the project root to sys.path so `import app.*` resolves correctly
+# from any pytest invocation directory (e.g. running from services/core_api/).
+pythonpath = ["."]
+asyncio_mode = "auto"

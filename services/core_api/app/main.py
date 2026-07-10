@@ -15,12 +15,14 @@ if BASE_DIR not in sys.path:
     sys.path.append(BASE_DIR)
 
 try:
-    from app.api import auth_routes, legal_api, chat_ws
+    from app.api import auth_routes, legal_api, chat_ws, history_api
     from app.core.db import init_db
+    from app.core.security import check_bypass_guard
 except ImportError:
     # Fallback for if running from within app/ directory
-    from api import auth_routes, legal_api, chat_ws
+    from api import auth_routes, legal_api, chat_ws, history_api
     from core.db import init_db
+    from core.security import check_bypass_guard
 
 
 def download_db_if_missing():
@@ -61,7 +63,14 @@ def download_db_if_missing():
 
 @asynccontextmanager
 async def app_lifespan(application: FastAPI):
-    """Run database table initialization at app startup."""
+    """Run startup checks and database initialization.
+
+    Guards:
+    - Refuses to start if ENV=production and DEV_BYPASS_AUTH=True.
+    - Downloads the RAG database from GCS if not present locally.
+    - Initialises all SQLModel table schemas.
+    """
+    check_bypass_guard()  # Hard production safety check — must run first
     download_db_if_missing()
     init_db()
     yield
@@ -80,6 +89,7 @@ app.add_middleware(
 
 app.include_router(auth_routes.router)
 app.include_router(legal_api.router)
+app.include_router(history_api.router)
 app.include_router(chat_ws.router)
 
 
