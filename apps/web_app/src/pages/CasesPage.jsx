@@ -1,9 +1,31 @@
-import React, { useState } from 'react';
+/**
+ * CasesPage — case management for clients and advocates.
+ *
+ * Clients see their consultation timeline with live stage progress.
+ * Advocates see incoming requests with accept/decline actions and a
+ * stage advancement dropdown for accepted cases.
+ *
+ * All data is fetched from the backend on mount and after every
+ * state-changing action (accept, decline, stage update). Mock data
+ * is only used as a fallback if the API is unreachable.
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
-import { resolveCase, updateCaseStage } from '../api/legal';
+import {
+  getCases,
+  submitCaseRequest,
+  resolveCase,
+  updateCaseStage,
+  getPosts,
+} from '../api/legal';
 import styles from './CasesPage.module.css';
+
+// ---------------------------------------------------------------------------
+// Stage metadata
+// ---------------------------------------------------------------------------
 
 const STAGE_LABELS = {
   submitted: 'Request Sent',
@@ -23,31 +45,28 @@ const STAGE_COLORS = {
   declined: 'badge-red',
 };
 
-const MOCK_CLIENT_CASES = [
-  {
-    case_id: 'case_001', lawyer_name: 'Adv. Ravi Sharma',
-    summary: 'Land acquisition compensation notice under Act 2013.',
-    status: 'accepted', current_stage: 'in_review', created_at: '2026-07-01',
-  },
-  {
-    case_id: 'case_002', lawyer_name: 'Adv. Priya Mehta',
-    summary: 'Rental lease dispute — clause 14 contradicts Indian Contract Act.',
-    status: 'submitted', current_stage: 'submitted', created_at: '2026-07-04',
-  },
-  {
-    case_id: 'case_003', lawyer_name: 'Adv. Suresh Nair',
-    summary: 'Employment termination claim under Industrial Disputes Act.',
-    status: 'completed', current_stage: 'completed', created_at: '2026-06-20',
-  },
+const TIMELINE_STAGES = [
+  'submitted',
+  'accepted',
+  'in_review',
+  'advice_drafted',
+  'completed',
 ];
 
-const MOCK_LAWYER_CASES = [
-  { case_id: 'inq_001', client: 'Arjun Verma', summary: 'Land acquisition under RFCTLARR 2013.', status: 'submitted', created_at: '2026-07-05' },
-  { case_id: 'inq_002', client: 'Sneha Das', summary: 'Tenant eviction procedure under Rent Control Act.', status: 'submitted', created_at: '2026-07-04' },
-  { case_id: 'inq_003', client: 'Rohit Kumar', summary: 'Employment termination — Section 25F ID Act.', status: 'accepted', current_stage: 'in_review', created_at: '2026-07-01' },
+// ---------------------------------------------------------------------------
+// Mock lawyers directory (sidebar — will connect to GET /legal/lawyers later)
+// ---------------------------------------------------------------------------
+
+const MOCK_LAWYERS = [
+  { id: 1, name: 'Adv. Ravi Sharma',  domains: ['Criminal Law', 'Constitutional Law'], exp: 8,  online: true },
+  { id: 2, name: 'Adv. Priya Mehta',  domains: ['Corporate Law', 'Tax Law'],           exp: 12, online: true },
+  { id: 3, name: 'Adv. Suresh Nair',  domains: ['Family Law', 'Civil Law'],             exp: 5,  online: false },
+  { id: 4, name: 'Adv. Kavitha Iyer', domains: ['Property Law', 'Labour Law'],          exp: 9,  online: true },
 ];
 
-const TIMELINE_STAGES = ['submitted', 'accepted', 'in_review', 'advice_drafted', 'completed'];
+// ---------------------------------------------------------------------------
+// Sub-components
+// ---------------------------------------------------------------------------
 
 function ClientTimeline({ c }) {
   const stageIdx = TIMELINE_STAGES.indexOf(c.current_stage);
@@ -55,35 +74,48 @@ function ClientTimeline({ c }) {
     <div className={styles.caseCard}>
       <div className={styles.caseCardHeader}>
         <div>
-          <div className={styles.caseTitle}>Case #{c.case_id.split('_')[1]}</div>
+          <div className={styles.caseTitle}>Case #{c.id}</div>
           <div className={styles.caseLawyer}>👨‍⚖️ {c.lawyer_name}</div>
           <p className={styles.caseSummary}>{c.summary}</p>
         </div>
-        <span className={`badge ${STAGE_COLORS[c.status]}`}>{STAGE_LABELS[c.status]}</span>
+        <span className={`badge ${STAGE_COLORS[c.status] || 'badge-amber'}`}>
+          {STAGE_LABELS[c.status] || c.status}
+        </span>
       </div>
 
-      {/* Timeline nodes */}
       {c.status !== 'declined' && (
         <div className={styles.timeline}>
-          {TIMELINE_STAGES.filter(s => s !== 'declined').map((stage, i) => (
+          {TIMELINE_STAGES.map((stage, i) => (
             <React.Fragment key={stage}>
               <div className={styles.timelineItem}>
-                <div className={`${styles.timelineNode} ${
-                  i < stageIdx ? styles.nodeComplete :
-                  i === stageIdx ? styles.nodeActive : styles.nodePending
-                }`}>
+                <div
+                  className={`${styles.timelineNode} ${
+                    i < stageIdx
+                      ? styles.nodeComplete
+                      : i === stageIdx
+                      ? styles.nodeActive
+                      : styles.nodePending
+                  }`}
+                >
                   {i < stageIdx ? '✓' : i + 1}
                 </div>
                 <div className={styles.nodeLabel}>{STAGE_LABELS[stage]}</div>
               </div>
               {i < TIMELINE_STAGES.length - 2 && (
-                <div className={`${styles.timelineLine} ${i < stageIdx ? styles.lineComplete : ''}`} />
+                <div
+                  className={`${styles.timelineLine} ${
+                    i < stageIdx ? styles.lineComplete : ''
+                  }`}
+                />
               )}
             </React.Fragment>
           ))}
         </div>
       )}
-      <div className={styles.caseDate}>Filed: {c.created_at}</div>
+
+      <div className={styles.caseDate}>
+        Filed: {new Date(c.created_at).toLocaleDateString()}
+      </div>
     </div>
   );
 }
@@ -99,32 +131,35 @@ function LawyerInquiryCard({ inq, onAccept, onDecline, onStageChange }) {
     <div className={styles.caseCard}>
       <div className={styles.caseCardHeader}>
         <div>
-          <div className={styles.caseTitle}>👤 {inq.client}</div>
+          <div className={styles.caseTitle}>👤 {inq.client_name}</div>
           <p className={styles.caseSummary}>{inq.summary}</p>
-          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>{inq.created_at}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+            {new Date(inq.created_at).toLocaleDateString()}
+          </div>
         </div>
-        <span className={`badge ${STAGE_COLORS[localStatus]}`}>
-          {STAGE_LABELS[localStatus]}
+        <span className={`badge ${STAGE_COLORS[localStatus] || 'badge-amber'}`}>
+          {STAGE_LABELS[localStatus] || localStatus}
         </span>
       </div>
 
       {localStatus === 'submitted' && (
         <div className={styles.actionRow}>
           <button
-            id={`accept-${inq.case_id}`}
+            id={`accept-${inq.id}`}
             className="btn btn-success btn-sm"
             onClick={async () => {
-              await onAccept(inq.case_id);
+              await onAccept(inq.id);
               setLocalStatus('accepted');
+              setStage('accepted');
             }}
           >
             ✓ Accept Request
           </button>
           <button
-            id={`decline-${inq.case_id}`}
+            id={`decline-${inq.id}`}
             className="btn btn-danger btn-sm"
             onClick={async () => {
-              await onDecline(inq.case_id);
+              await onDecline(inq.id);
               setDismissed(true);
             }}
           >
@@ -142,7 +177,8 @@ function LawyerInquiryCard({ inq, onAccept, onDecline, onStageChange }) {
             onChange={async (e) => {
               const s = e.target.value;
               setStage(s);
-              await onStageChange(inq.case_id, s);
+              await onStageChange(inq.id, s);
+              if (s === 'completed') setLocalStatus('completed');
             }}
           >
             <option value="accepted">Accepted</option>
@@ -156,44 +192,100 @@ function LawyerInquiryCard({ inq, onAccept, onDecline, onStageChange }) {
   );
 }
 
-const MOCK_LAWYERS = [
-  { id: 1, name: 'Adv. Ravi Sharma', domains: ['Criminal Law', 'Constitutional Law'], exp: 8, online: true },
-  { id: 2, name: 'Adv. Priya Mehta', domains: ['Corporate Law', 'Tax Law'], exp: 12, online: true },
-  { id: 3, name: 'Adv. Suresh Nair', domains: ['Family Law', 'Civil Law'], exp: 5, online: false },
-  { id: 4, name: 'Adv. Kavitha Iyer', domains: ['Property Law', 'Labour Law'], exp: 9, online: true },
-];
+// ---------------------------------------------------------------------------
+// Page Component
+// ---------------------------------------------------------------------------
 
 export default function CasesPage() {
-  const { isLawyer } = useAuth();
+  const { user, token, isLawyer } = useAuth();
   const toast = useToast();
-  const [cases, setCases] = useState(isLawyer ? MOCK_LAWYER_CASES : MOCK_CLIENT_CASES);
+
+  const [cases, setCases]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  /** Fetch cases from the backend and update state. */
+  const loadCases = useCallback(async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const data = await getCases(token);
+      setCases(data);
+    } catch (err) {
+      console.warn('getCases API error, using empty list:', err);
+      setCases([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadCases();
+  }, [loadCases]);
+
+  // --- Actions ---
 
   const handleAccept = async (caseId) => {
     try {
-      await resolveCase(caseId, 'accept');
+      await resolveCase(token, caseId, 'accept');
       toast('Case accepted!', 'success');
-    } catch {
-      toast('Case accepted (offline mode)', 'success');
+      loadCases();
+    } catch (err) {
+      toast(err?.response?.data?.detail || 'Failed to accept case.', 'error');
     }
   };
 
   const handleDecline = async (caseId) => {
     try {
-      await resolveCase(caseId, 'decline');
+      await resolveCase(token, caseId, 'decline');
       toast('Case declined.', 'info');
-    } catch {
-      toast('Case declined (offline mode)', 'info');
+      loadCases();
+    } catch (err) {
+      toast(err?.response?.data?.detail || 'Failed to decline case.', 'error');
     }
   };
 
   const handleStageChange = async (caseId, stage) => {
     try {
-      await updateCaseStage(caseId, stage);
-      toast(`Stage updated to "${STAGE_LABELS[stage]}"`, 'success');
-    } catch {
-      toast(`Stage updated (offline mode)`, 'success');
+      await updateCaseStage(token, caseId, stage);
+      toast(`Stage updated to "${STAGE_LABELS[stage] || stage}"`, 'success');
+      loadCases();
+    } catch (err) {
+      toast(
+        err?.response?.data?.detail || 'Stage transition not permitted.',
+        'error',
+      );
     }
   };
+
+  // --- Consult shortcut (client sidebar) ---
+  const handleRequestConsult = async (lawyer) => {
+    if (!token) return;
+    const summary = prompt(
+      `Briefly describe your situation for ${lawyer.name}:`,
+    );
+    if (!summary || summary.trim().length < 10) {
+      toast('Please provide at least 10 characters.', 'error');
+      return;
+    }
+    try {
+      await submitCaseRequest(token, {
+        lawyerId: `lawyer-${lawyer.id}`, // placeholder — real UID once lawyer dir is live
+        lawyerName: lawyer.name,
+        querySummary: summary,
+      });
+      toast(`Consultation request sent to ${lawyer.name}!`, 'success');
+      loadCases();
+    } catch (err) {
+      toast(
+        err?.response?.data?.detail || 'Failed to submit request.',
+        'error',
+      );
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
 
   return (
     <div className={styles.page}>
@@ -213,27 +305,42 @@ export default function CasesPage() {
             </p>
           </div>
 
-          <div className={styles.caseList}>
-            {isLawyer
-              ? cases.map((c) => (
-                  <LawyerInquiryCard
-                    key={c.case_id}
-                    inq={c}
-                    onAccept={handleAccept}
-                    onDecline={handleDecline}
-                    onStageChange={handleStageChange}
-                  />
-                ))
-              : cases.map((c) => <ClientTimeline key={c.case_id} c={c} />)
-            }
-          </div>
+          {loading ? (
+            <div style={{ color: 'var(--text-muted)', padding: '2rem 0' }}>
+              Loading cases…
+            </div>
+          ) : cases.length === 0 ? (
+            <div style={{ color: 'var(--text-muted)', padding: '2rem 0' }}>
+              {isLawyer
+                ? 'No pending inquiries.'
+                : 'You have no active cases. Use the sidebar to request a consult.'}
+            </div>
+          ) : (
+            <div className={styles.caseList}>
+              {isLawyer
+                ? cases.map((c) => (
+                    <LawyerInquiryCard
+                      key={c.id}
+                      inq={c}
+                      onAccept={handleAccept}
+                      onDecline={handleDecline}
+                      onStageChange={handleStageChange}
+                    />
+                  ))
+                : cases.map((c) => <ClientTimeline key={c.id} c={c} />)}
+            </div>
+          )}
         </main>
 
         {/* ===== SIDEBAR: LAWYER DIRECTORY (client only) ===== */}
         {!isLawyer && (
           <aside className={styles.directory}>
             <div className={styles.dirHeader}>🛡️ Find Advocates</div>
-            <input className="glass-input" placeholder="Filter by domain..." style={{ marginBottom: '1rem' }} />
+            <input
+              className="glass-input"
+              placeholder="Filter by domain…"
+              style={{ marginBottom: '1rem' }}
+            />
             <div className={styles.lawyerGrid}>
               {MOCK_LAWYERS.map((l) => (
                 <div key={l.id} className={styles.lawyerCard}>
@@ -244,19 +351,23 @@ export default function CasesPage() {
                     </div>
                     <div>
                       <div className={styles.lawyerName}>{l.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{l.exp} yrs</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        {l.exp} yrs
+                      </div>
                     </div>
                   </div>
                   <div className={styles.lawyerDomains}>
                     {l.domains.map((d) => (
-                      <span key={d} className="badge badge-amber" style={{ fontSize: '0.65rem' }}>{d}</span>
+                      <span key={d} className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
+                        {d}
+                      </span>
                     ))}
                   </div>
                   <button
                     id={`consult-${l.id}`}
                     className="btn btn-amber btn-sm btn-full"
                     style={{ marginTop: '0.75rem' }}
-                    onClick={() => toast(`Requesting consultation with ${l.name}...`, 'info')}
+                    onClick={() => handleRequestConsult(l)}
                   >
                     Request Consult
                   </button>
