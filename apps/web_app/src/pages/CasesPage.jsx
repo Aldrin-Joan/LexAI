@@ -53,16 +53,7 @@ const TIMELINE_STAGES = [
   'completed',
 ];
 
-// ---------------------------------------------------------------------------
-// Mock lawyers directory (sidebar — will connect to GET /legal/lawyers later)
-// ---------------------------------------------------------------------------
 
-const MOCK_LAWYERS = [
-  { id: 1, name: 'Adv. Ravi Sharma',  domains: ['Criminal Law', 'Constitutional Law'], exp: 8,  online: true },
-  { id: 2, name: 'Adv. Priya Mehta',  domains: ['Corporate Law', 'Tax Law'],           exp: 12, online: true },
-  { id: 3, name: 'Adv. Suresh Nair',  domains: ['Family Law', 'Civil Law'],             exp: 5,  online: false },
-  { id: 4, name: 'Adv. Kavitha Iyer', domains: ['Property Law', 'Labour Law'],          exp: 9,  online: true },
-];
 
 // ---------------------------------------------------------------------------
 // Sub-components
@@ -201,6 +192,7 @@ export default function CasesPage() {
   const toast = useToast();
 
   const [cases, setCases]     = useState([]);
+  const [lawyers, setLawyers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   /** Fetch cases from the backend and update state. */
@@ -218,9 +210,22 @@ export default function CasesPage() {
     }
   }, [token]);
 
+  /** Fetch verified advocates list from backend. */
+  const loadLawyers = useCallback(async () => {
+    if (!token || isLawyer) return;
+    try {
+      const data = await getLawyers(token);
+      setLawyers(data);
+    } catch (err) {
+      console.warn('getLawyers API error:', err);
+      setLawyers([]);
+    }
+  }, [token, isLawyer]);
+
   useEffect(() => {
     loadCases();
-  }, [loadCases]);
+    loadLawyers();
+  }, [loadCases, loadLawyers]);
 
   // --- Actions ---
 
@@ -342,37 +347,42 @@ export default function CasesPage() {
               style={{ marginBottom: '1rem' }}
             />
             <div className={styles.lawyerGrid}>
-              {MOCK_LAWYERS.map((l) => (
-                <div key={l.id} className={styles.lawyerCard}>
-                  <div className={styles.lawyerTop}>
-                    <div className={styles.lawyerAvatar}>
-                      {l.name.split(' ')[1][0]}
-                      {l.online && <span className={styles.onlineDot} />}
-                    </div>
-                    <div>
-                      <div className={styles.lawyerName}>{l.name}</div>
-                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                        {l.exp} yrs
+              {lawyers.map((l) => {
+                const nameParts = l.name.split(' ');
+                const avatarChar = nameParts.length > 1 ? nameParts[nameParts.length - 1][0] : l.name[0];
+                const domainsList = l.domains || (l.specialization ? [l.specialization] : ['General Practice']);
+                return (
+                  <div key={l.id} className={styles.lawyerCard}>
+                    <div className={styles.lawyerTop}>
+                      <div className={styles.lawyerAvatar}>
+                        {avatarChar}
+                        {l.online && <span className={styles.onlineDot} />}
+                      </div>
+                      <div>
+                        <div className={styles.lawyerName}>{l.name}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          {l.exp || (l.rating ? `${l.rating} ★` : '5+ yrs')}
+                        </div>
                       </div>
                     </div>
+                    <div className={styles.lawyerDomains}>
+                      {domainsList.map((d) => (
+                        <span key={d} className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      id={`consult-${l.id}`}
+                      className="btn btn-amber btn-sm btn-full"
+                      style={{ marginTop: '0.75rem' }}
+                      onClick={() => handleRequestConsult(l)}
+                    >
+                      Request Consult
+                    </button>
                   </div>
-                  <div className={styles.lawyerDomains}>
-                    {l.domains.map((d) => (
-                      <span key={d} className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
-                        {d}
-                      </span>
-                    ))}
-                  </div>
-                  <button
-                    id={`consult-${l.id}`}
-                    className="btn btn-amber btn-sm btn-full"
-                    style={{ marginTop: '0.75rem' }}
-                    onClick={() => handleRequestConsult(l)}
-                  >
-                    Request Consult
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </aside>
         )}

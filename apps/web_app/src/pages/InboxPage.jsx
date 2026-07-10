@@ -14,43 +14,14 @@ import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import { wsManager } from '../api/ws';
-import { getChatHistory, sendChatMessage } from '../api/legal';
+import { getCases, getChatHistory, sendChatMessage } from '../api/legal';
 import {
   PaperclipIcon, SendIcon, SearchIcon,
   MessageIcon, UserIcon,
 } from '../components/Icons';
 import styles from './InboxPage.module.css';
 
-// ---------------------------------------------------------------------------
-// Contact list (will eventually come from GET /legal/cases & /legal/lawyers)
-// ---------------------------------------------------------------------------
 
-const MOCK_CONTACTS = [
-  {
-    id: 'ai',
-    name: '⚖️ LexAI Assistant',
-    lastMsg: 'How can I help you with legal research?',
-    unread: 0,
-    online: true,
-    time: 'now',
-  },
-  {
-    id: 'adv1',
-    name: 'Adv. Ravi Sharma',
-    lastMsg: 'I have reviewed your case documents.',
-    unread: 2,
-    online: true,
-    time: '3m',
-  },
-  {
-    id: 'adv2',
-    name: 'Adv. Priya Mehta',
-    lastMsg: 'Your appointment is confirmed for tomorrow.',
-    unread: 0,
-    online: false,
-    time: '1h',
-  },
-];
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -88,7 +59,7 @@ export default function InboxPage() {
 
   const [activeId, setActiveId]     = useState('ai');
   const [messages, setMessages]     = useState([]);
-  const [contacts, setContacts]     = useState(MOCK_CONTACTS);
+  const [contacts, setContacts]     = useState([]);
   const [input, setInput]           = useState('');
   const [typing, setTyping]         = useState(false);
   const [connected, setConnected]   = useState(false);
@@ -96,6 +67,53 @@ export default function InboxPage() {
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const chatEndRef = useRef(null);
+
+  // ---------------------------------------------------------------------------
+  // Load Contacts list dynamically from active cases
+  // ---------------------------------------------------------------------------
+
+  const loadContacts = useCallback(async () => {
+    if (!token) return;
+    try {
+      const casesData = await getCases(token);
+      const uniqueContacts = new Map();
+
+      // Ensure LexAI is always available as the first contact
+      uniqueContacts.set('ai', {
+        id: 'ai',
+        name: '⚖️ LexAI Assistant',
+        lastMsg: 'How can I help you with legal research?',
+        unread: 0,
+        online: true,
+        time: 'now',
+      });
+
+      casesData.forEach((c) => {
+        // For client, show lawyer as contact; for advocate, show client.
+        const contactId = user?.isLawyer ? c.client_id : c.lawyer_id;
+        const contactName = user?.isLawyer ? c.client_name : c.lawyer_name;
+
+        if (contactId && !uniqueContacts.has(contactId)) {
+          uniqueContacts.set(contactId, {
+            id: contactId,
+            name: contactName,
+            lastMsg: c.summary,
+            unread: 0,
+            online: true,
+            time: ago(new Date(c.created_at).getTime()),
+          });
+        }
+      });
+
+      setContacts(Array.from(uniqueContacts.values()));
+    } catch (err) {
+      console.warn('Failed to load active case contacts:', err);
+    }
+  }, [token, user]);
+
+  useEffect(() => {
+    loadContacts();
+  }, [loadContacts]);
 
   // ---------------------------------------------------------------------------
   // WebSocket lifecycle

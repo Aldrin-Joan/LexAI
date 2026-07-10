@@ -214,6 +214,18 @@ export async function sendChatMessage(
   return res.data;
 }
 
+/**
+ * Fetch the directory of verified advocates.
+ *
+ * @param {string} token - Firebase ID token.
+ * @returns {Promise<Array>} List of lawyer profile objects.
+ */
+export async function getLawyers(token) {
+  const res = await axios.get('/legal/lawyers', authConfig(token));
+  return res.data;
+}
+
+
 // ---------------------------------------------------------------------------
 // LexAI  (deployed Core API — separate service, no local auth proxy)
 // ---------------------------------------------------------------------------
