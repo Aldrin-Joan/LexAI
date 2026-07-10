@@ -158,6 +158,54 @@ Format: {{"entities": [{{"type": "JUDGE", "text": "Name", "confidence": 0.9}}]}}
         """Placeholder for relationship detection."""
         return []
 
+    def route_query(
+        self,
+        query: str,
+        history: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """Route the user query to decide whether to search, ask clarification, or respond directly."""
+        history_text = ""
+        if history:
+            for msg in history[-6:]:
+                role = "User" if msg["role"] == "user" else "Assistant"
+                history_text += f"{role}: {msg['content']}\n"
+
+        prompt = f"""You are a Legal AI Assistant routing agent.
+Analyze the user's latest query and the conversation history. Decide whether the system should query the database for Indian case laws, ask the user for a follow-up query because the input lacks context to perform a proper database search, or respond directly (only for non-legal talk).
+
+STRICT ROUTING RULES:
+1. "search": Use this action for ANY query regarding specific legal issues, legal advice, constitutional articles (e.g., Article 21, Article 370), statutes, case law inquiries, or questions requesting precedents. Even if you know the general answer, if it concerns a legal topic, you MUST select "search" to retrieve matching case precedents from the database.
+2. "ask_clarification": Use this action ONLY if the user's query is explicitly legal but so vague, brief, or lacking facts (e.g., "how do I win my case?", "help me with my dispute", "what should I do next?") that it is impossible to perform a meaningful search.
+3. "direct_respond": Use this action ONLY for non-legal greetings (e.g., "hi", "hello"), general system capability questions (e.g., "what can you do?", "how do I use this app"), thanking the assistant (e.g., "thanks"), or general small talk.
+
+CONVERSATION HISTORY:
+{history_text or "No previous history."}
+
+LATEST USER QUERY:
+"{query}"
+
+Return a JSON object exactly with these keys:
+{{
+    "action": "search" | "ask_clarification" | "direct_respond",
+    "search_query": "A refined/recalibrated keyword search query optimized for database retrieval. Summarize the user's query into the core legal terms, citations, or concepts. Empty string if action is not 'search'.",
+    "response": "A helpful response to the user. If action is 'ask_clarification', ask a specific follow-up question. If action is 'direct_respond', answer the user's question directly. Empty string if action is 'search'."
+}}"""
+
+        response = self._make_request(prompt, temperature=0.1, is_json=True)
+        if response:
+            try:
+                result = json.loads(response)
+                if "action" in result:
+                    return result
+            except Exception:
+                pass
+        
+        return {
+            "action": "search",
+            "search_query": query,
+            "response": ""
+        }
+
     def analyze_search_query(
         self,
         query: str
@@ -225,11 +273,12 @@ Output queries separated by newlines.
 Based on the provided precedents and conversation history, answer the query.
 
 STRICT RULES:
-1. CITATIONS: Use the FULL Case Names and Citations for every legal point.
-2. GROUNDING: Only answer based on the provided [CASE] texts.
-3. STRUCTURE: Use a structured 'Legal Opinion' format.
-4. FOLLOW-UPS: If this is a follow-up query, maintain consistency with history.
-5. NO MARKDOWN: DO NOT use markdown formatting. No bold (**), no italics (*),
+1. EXPLAIN FIRST: You must begin your response by explaining the legal answer to the user in plain, simple, and easily understandable words first.
+2. CITATIONS: Only after providing the simple explanation, list and describe the relevant case citations and precedents (using full case names) from the precedents section to support your opinion.
+3. GROUNDING: Only answer based on the provided [CASE] texts.
+4. STRUCTURE: Use a structured 'Legal Opinion' format, keeping the plain explanation at the top and case citations in a dedicated references section below.
+5. FOLLOW-UPS: If this is a follow-up query, maintain consistency with history.
+6. NO MARKDOWN: DO NOT use markdown formatting. No bold (**), no italics (*),
    no markdown tables, no backticks (`). Use PLAIN TEXT ONLY.
 
 CONVERSATION HISTORY:

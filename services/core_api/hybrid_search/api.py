@@ -155,36 +155,52 @@ async def chat_consultation(query: ChatQuery):
             sessions.load_session(query.session_id)
         else:
             sessions.start_new_session()
-            
-        # 2. Search
-        results = get_engine().search(
-            query.query, limit=query.limit, mode=SearchMode.HYBRID
-        )
-        if not results:
+
+        # 2. Query Routing Decision
+        llm = get_llm()
+        route = llm.route_query(query.query, history=sessions.history)
+        action = route.get("action", "search")
+        recalibrated_query = route.get("search_query", query.query)
+
+        if action in ("ask_clarification", "direct_respond"):
+            answer = route.get("response", "Could you please provide more details about the case?")
+            sessions.add_message("user", query.query)
+            sessions.add_message("assistant", answer, metadata={"routed_action": action})
             return {
-                "answer": "No relevant precedents found.",
+                "answer": answer,
                 "session_id": sessions.current_session_id,
                 "precedents": []
             }
-            
-        # 3. Prepare Context
+
+        # 3. Search
+        results = get_engine().search(
+            recalibrated_query, limit=query.limit, mode=SearchMode.HYBRID
+        )
+        if not results:
+            return {
+                "answer": "No relevant precedents found for your query.",
+                "session_id": sessions.current_session_id,
+                "precedents": []
+            }
+
+        # 4. Prepare Context
         context_docs = [
             {'title': res['title'], 'text': res.get('text_content', '')}
             for res in results
         ]
-        
-        # 4. Generate Answer
-        answer = get_llm().generate_answer(
+
+        # 5. Generate Answer
+        answer = llm.generate_answer(
             query.query, context_docs, history=sessions.history
         )
-        
-        # 5. Update Session
+
+        # 6. Update Session
         sessions.add_message("user", query.query)
         sessions.add_message(
             "assistant", answer,
-            metadata={"precedents": [r['title'] for r in results]}
+            metadata={"precedents": [r['title'] for r in results], "routed_action": action}
         )
-        
+
         return {
             "answer": answer,
             "session_id": sessions.current_session_id,
